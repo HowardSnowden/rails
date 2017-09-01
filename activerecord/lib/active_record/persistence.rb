@@ -1,5 +1,4 @@
 # frozen_string_literal: true
-
 module ActiveRecord
   # = Active Record \Persistence
   module Persistence
@@ -227,13 +226,14 @@ module ActiveRecord
     # If you want to change the sti column as well, use #becomes! instead.
     def becomes(klass)
       became = klass.new
+      preserve_virtual_attributes_before_becomes(became)
       became.instance_variable_set("@attributes", @attributes)
       became.instance_variable_set("@mutation_tracker", @mutation_tracker) if defined?(@mutation_tracker)
       became.instance_variable_set("@changed_attributes", attributes_changed_by_setter)
       became.instance_variable_set("@new_record", new_record?)
       became.instance_variable_set("@destroyed", destroyed?)
       became.errors.copy!(errors)
-      became
+      became 
     end
 
     # Wrapper around #becomes that also changes the instance's sti column value.
@@ -545,10 +545,25 @@ module ActiveRecord
       end
     end
 
-  private
+    private
 
     # A hook to be overridden by association modules.
     def destroy_associations
+    end
+
+
+    def preserve_virtual_attributes_before_becomes(became)
+     attrs = became.instance_variable_get('@attributes')
+     preserved_virtual_attributes= []
+     attrs.keys.each do |key|
+        if attrs[key].class.to_s == "ActiveRecord::Attribute::WithCastValue"
+          preserved_virtual_attributes << attrs[key]
+        end
+      end
+
+      preserved_virtual_attributes.each do |p|
+       @attributes[p.name] = p
+      end
     end
 
     def destroy_row

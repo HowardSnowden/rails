@@ -23,10 +23,11 @@ require "models/ship"
 require "models/toy"
 require "models/admin"
 require "models/admin/user"
+require "models/friend"
 require "rexml/document"
 
 class PersistenceTest < ActiveRecord::TestCase
-  fixtures :topics, :companies, :developers, :projects, :computers, :accounts, :minimalistics, "warehouse-things", :authors, :author_addresses, :categorizations, :categories, :posts, :minivans, :pets, :toys
+  fixtures :topics, :companies, :developers, :projects, :computers, :accounts, :minimalistics, "warehouse-things", :authors, :author_addresses, :categorizations, :people, :categories, :posts, :minivans, :pets, :toys
 
   # Oracle UPDATE does not support ORDER BY
   unless current_adapter?(:OracleAdapter)
@@ -209,6 +210,19 @@ class PersistenceTest < ActiveRecord::TestCase
     assert_nothing_raised do
       child.errors.add :foo, :invalid
     end
+  end
+
+  def test_virtual_attribute_after_becomes
+    friend = Person.new.becomes(Friend)
+    friend.special = true 
+    assert friend.special
+  end
+
+  def test_save_after_virtual_attribute_becomes
+    person = people(:michael)
+    friend = person.becomes(Friend)
+    friend.save!
+    assert friend.persisted?
   end
 
   def test_duped_becomes_persists_changes_from_the_original
